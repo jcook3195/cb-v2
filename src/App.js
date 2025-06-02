@@ -13,14 +13,17 @@ function App() {
     <React.Fragment>
       <Container>
         <Row className="justify-content-center">
-          <Col>
-            <Map />
+          <Col xs lg={6} className="mt-4 mb-4 text-center">
+            <h1>CampingBuddyV2</h1>
           </Col>
         </Row>
         <Row className="justify-content-center">
-          <Col>
+          <Col lg={12} xl={6}>
             <ListManagement />
           </Col>
+          <Col lg={12} xl={6}>
+            <Map />
+          </Col>          
         </Row>
       </Container>
     </React.Fragment>

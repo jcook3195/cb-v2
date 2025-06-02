@@ -14,6 +14,8 @@ import {
   InfoWindowF,
 } from "@react-google-maps/api";
 
+import AlertComponent from "../ui/AlertComponent/AlertComponent";
+
 import Form from "react-bootstrap/Form";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
@@ -41,13 +43,23 @@ const Map = () => {
   // state management
   const [activeMarker, setActiveMarker] = useState(null);
   const [newCampground, setNewCampground] = useState(false);
-  const [addCampground, setAddCampground] = useState(false);
   const [cgName, setCgName] = useState("");
   const [cgLat, setCgLat] = useState("");
   const [cgLng, setCgLng] = useState("");
   const [cgRating, setCgRating] = useState("");
   const [cgDesc, setCgDesc] = useState("");
   const [markers, setMarkers] = useState(null);
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertText, setAlertText] = useState("");
+  const [alertType, setAlertType] = useState("primary");
+
+  const onShowAlertHandler = () => {
+      setShowAlert(true);
+
+      setTimeout(() => {
+          setShowAlert(false)}
+      , 5000);
+  }
 
   // active marker handling
   const handleActiveMarker = (marker) => {
@@ -94,7 +106,6 @@ const Map = () => {
   };
 
   const onAddCampgroundHandler = async () => {
-    setAddCampground(true);
     const docRef = await addDoc(campgroundsCollectionRef, {
       name: cgName,
       lat: cgLat,
@@ -102,6 +113,10 @@ const Map = () => {
       rating: cgRating,
       description: cgDesc,
     });
+
+    setAlertText(`Campground ${cgName} has been added!`);
+    setAlertType('success');
+    onShowAlertHandler();
 
     setNewCampground(false);
     setCgName("");
@@ -112,6 +127,14 @@ const Map = () => {
     getMarkers();
     console.log("Added Campground with ID of: " + docRef.id);
   };
+
+  const isAddCampgroundButtonDisabled = !(
+        cgName &&
+        cgLat &&
+        cgLng &&
+        cgRating &&
+        cgDesc
+  );
 
   useEffect(() => {
     getMarkers();
@@ -128,9 +151,36 @@ const Map = () => {
 
   return (
     <>
-      <Row className="justify-content-center">
-        <Col xs lg={6} className="mt-4 mb-4 text-center">
-          <h1>Camping Buddy</h1>
+      <Row>
+        <Col>
+          <GoogleMap
+            mapContainerStyle={mapContainerStyle}
+            zoom={10}
+            center={center}
+          >
+            {markers !== null ? (
+              markers.map(({ id, name, lat, lng, rating, description }) => (
+                <MarkerF
+                  key={id}
+                  icon="/map-pin.png"
+                  position={{ lat: Number(lat), lng: Number(lng) }}
+                  onClick={() => handleActiveMarker(id)}
+                >
+                  {activeMarker === id ? (
+                    <InfoWindowF onCloseClick={() => setActiveMarker(null)}>
+                      <div className="text-center">
+                        <h5>{name}</h5>
+                        <div>{rating}</div>
+                        <p>{description}</p>
+                      </div>
+                    </InfoWindowF>
+                  ) : null}
+                </MarkerF>
+              ))
+            ) : (
+              <></>
+            )}
+          </GoogleMap>
         </Col>
       </Row>
       <Row className="justify-content-center">
@@ -140,10 +190,15 @@ const Map = () => {
           </Button>{" "}
         </Col>
       </Row>
+
+      {showAlert && (
+          <AlertComponent alertText={alertText} alertType={alertType} />                
+      )}
+
       {newCampground && (
         <>
           <Row className="justify-content-center">
-            <Col xs lg={6} className="mt-4 mb-4 text-center">
+            <Col className="mt-4 mb-4 text-center">
               <Form>
                 <Form.Group className="mb-3" controlId="cgName">
                   <Form.Label>Campground Name</Form.Label>
@@ -190,52 +245,17 @@ const Map = () => {
           </Row>
           <Row className="justify-content-center text-center">
             <Col lg={6} xs={12} className="mt-4 mb-4">
-              <Button variant="primary" onClick={onAddCampgroundHandler}>
+              <Button 
+                variant="primary" 
+                onClick={onAddCampgroundHandler}
+                disabled={isAddCampgroundButtonDisabled}
+              >
                 Add Campground
               </Button>{" "}
             </Col>
           </Row>
         </>
       )}
-      {addCampground && (
-        <Row>
-          <Col>
-            <p>Added campground!</p>
-          </Col>
-        </Row>
-      )}
-      <Row>
-        <Col>
-          <GoogleMap
-            mapContainerStyle={mapContainerStyle}
-            zoom={10}
-            center={center}
-          >
-            {markers !== null ? (
-              markers.map(({ id, name, lat, lng, rating, description }) => (
-                <MarkerF
-                  key={id}
-                  position={{ lat: Number(lat), lng: Number(lng) }}
-                  onClick={() => handleActiveMarker(id)}
-                >
-                  {activeMarker === id ? (
-                    <InfoWindowF onCloseClick={() => setActiveMarker(null)}>
-                      <div className="text-center">
-                        <h5>{name}</h5>
-                        <div>{rating}</div>
-                        <img src="https://picsum.photos/200" alt="" />
-                        <p>{description}</p>
-                      </div>
-                    </InfoWindowF>
-                  ) : null}
-                </MarkerF>
-              ))
-            ) : (
-              <></>
-            )}
-          </GoogleMap>
-        </Col>
-      </Row>
     </>
   );
 };

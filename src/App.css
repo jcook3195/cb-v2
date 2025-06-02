@@ -1,40 +1,34 @@
-.App {
-  text-align: center;
+#root {
+  background-color: #222831;
+  color: #fff !important;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+.gm-style {
+  color: #000 !important;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+.btn.btn-primary {
+  background-color: #1F7D53;
+  border-color: #1F7D53;
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+.btn.btn-danger {
+  background-color: #A27B5C;
+  border-color: #A27B5C;
 }
 
-.App-link {
-  color: #61dafb;
+.card:hover {
+  cursor: pointer;
+  opacity: .9;
+  transition: .25s;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.card-body hr {
+  margin: .25rem 0;
+}
+
+.card-body p {
+  margin-bottom: 0;
 }
 
 .existing-trips ul {
@@ -54,7 +48,7 @@
 }
 
 .existing-trips ul li.previous, .existing-trips ul li.next, .existing-trips ul li.selected {  
-  background-color: rgba(13, 110, 253, 1);
+  background-color: #1F7D53;
   padding: .75rem 1rem;
   border-radius: 1rem;
 }

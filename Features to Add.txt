@@ -1,0 +1,23 @@
+Features to Add:
+
+Trips
+	- delete a trip
+	- order trips by date
+	- create a log of past trips and move them there automatically
+	- edit a trip
+	- add better form validation
+
+Lists
+	- Order lists alphabetically
+	- Add ability to add/remove list items on a trip
+	- Add ability to edit list templates
+	- Add form validation
+
+Campgrounds
+	- Add ability to edit campgrounds
+	- Add ability to remove campgrounds
+	- Add better form validation
+
+General
+	- Break into components
+	- Change state to use redux
