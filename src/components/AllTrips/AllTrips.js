@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { db } from "../../firebase/firebase"
 import {
     collection,
@@ -6,7 +6,8 @@ import {
     doc,
     getDoc,
     updateDoc,
-    addDoc
+    addDoc,
+    deleteDoc
 } from "firebase/firestore";
 import ReactPaginate from 'react-paginate';
 
@@ -16,6 +17,7 @@ import Row from "react-bootstrap/Row"
 import Col from "react-bootstrap/Col"
 import Button from "react-bootstrap/Button"
 import Form from "react-bootstrap/Form"
+import FloatingLabel from 'react-bootstrap/FloatingLabel';
 
 function AllTrips() {
     // state management
@@ -102,9 +104,64 @@ function AllTrips() {
         setCampgrounds(data.docs.map((doc) => ({ ...doc.data(), id: doc.id })));
     };
 
+    const sortChecklistItems = (checklist) => {
+        if (!checklist) return [];
+        return Object.entries(checklist)
+            .sort(([idA], [idB]) => idA.localeCompare(idB))
+            .reduce((obj, [key, value]) => {
+                obj[key] = value;
+                return obj;
+            }, {});
+    };
+
+    // Memoize the sorted checklists
+    const sortedPackingChecklist = useMemo(() => {
+        if(currentTripData){
+            const checklist = currentTripData._document.data.value.mapValue.fields.packCheck.mapValue.fields
+            return sortChecklistItems(checklist)
+        }
+    }, [currentTripData]);
+
+    const sortedBeforeLeavingChecklist = useMemo(() => {
+        if(currentTripData){
+            const checklist = currentTripData._document.data.value.mapValue.fields.beforeCheck.mapValue.fields
+            return sortChecklistItems(checklist);
+        }
+    }, [currentTripData]);
+
+    const sortedAfterReturningChecklist = useMemo(() => {
+        if(currentTripData){
+            const checklist = currentTripData._document.data.value.mapValue.fields.afterCheck.mapValue.fields
+            return sortChecklistItems(checklist);
+        }
+    }, [currentTripData]);
+
     const onNewTripHandler = () => {
         setNewTrip(true);
     };
+
+    const onDeleteTripHandler = async (tripId) => {
+        try {
+            const tripDocRef = doc(db, "trips", tripId);
+            await deleteDoc(tripDocRef);
+
+            setTrips(prevTrips => prevTrips.filter(trip => trip.id !== tripId));
+
+            setAlertText("Trip successfully removed.");
+            setAlertType("success");
+            onShowAlertHandler();
+
+            setShowSingleTrip(false);
+            setShowTrips(true);
+            setCurrentTripId("");
+            setCurrentTripData(null);
+        } catch (error) {
+            console.error("Error deleting trip: ", error);
+            setAlertText("There was an error deleting the trip.");
+            setAlertType("danger");
+            onShowAlertHandler();
+        }
+    }
 
     const onCancelNewTripHandler = () => {
         setNewTrip(false);
@@ -249,16 +306,16 @@ function AllTrips() {
         
         return (
             <>
-            <Trips trips={trips} />
-            <ReactPaginate
-                breakLabel="..."
-                nextLabel="Next"
-                onPageChange={handlePageClick}
-                pageRangeDisplayed={5}
-                pageCount={pageCount}
-                previousLabel="Previous"
-                renderOnZeroPageCount={null}
-            />
+                <Trips trips={trips} />
+                <ReactPaginate
+                    breakLabel="..."
+                    nextLabel="Next"
+                    onPageChange={handlePageClick}
+                    pageRangeDisplayed={5}
+                    pageCount={pageCount}
+                    previousLabel="Previous"
+                    renderOnZeroPageCount={null}
+                />
             </>
         );
     }
@@ -298,7 +355,7 @@ function AllTrips() {
         )}
 
         <Row className="justify-content-center text-center">
-            <Col className="mt-4 mb-4">
+            <Col className="mb-4">
                 {!newTrip && (
                     <>
                         <Button variant="primary" onClick={onNewTripHandler}>
@@ -316,25 +373,24 @@ function AllTrips() {
         </Row>
 
         {showTrips && !newTrip && (
-            <Col className="mt-4 mb-4">
+            <Col className="mb-4">
+                <h2 className="text-center mb-4">Upcoming Trips</h2>
                 <PaginatedItems itemsPerPage={4} currentTrips={trips} />
             </Col>
         )}   
 
-        {(showSingleTrip && currentTripData != null) && !newTrip && (
+        {showSingleTrip && currentTripData != null && !newTrip && (
             <Row className="justify-content-center text-start single-trip">
                 <Col className="mt-4 mb-4">
-                    <h2>{currentTripData._document.data.value.mapValue.fields.name.stringValue}</h2>
-                    <hr />
-                    <h3>Campground: {currentTripData._document.data.value.mapValue.fields.campground.stringValue}</h3>
+                    <h2>{currentTripData._document.data.value.mapValue.fields.name.stringValue} @ {currentTripData._document.data.value.mapValue.fields.campground.stringValue}</h2>
                     <h4>Packing Checklist</h4>
+                    <hr />
                     <form className="text-start">
-                        {/* {JSON.stringify(currentTripData._document.data.value.mapValue.fields.packCheck.mapValue.fields)} */}
-                        {Object.keys(currentTripData._document.data.value.mapValue.fields.packCheck.mapValue.fields).map((key, i) => {
-                            const packLoopList = currentTripData._document.data.value.mapValue.fields.packCheck.mapValue.fields[key].mapValue.fields;
+                        {Object.keys(sortedPackingChecklist).map((key, i) => {
+                            const packLoopList = sortedPackingChecklist[key].mapValue.fields;
                             
                             return (
-                                <div key={packLoopList.id.stringValue}>
+                                <div key={packLoopList.id.stringValue} className="m-3 mt-0">
                                     
                                     <div className="mb-3 form-check">
                                         <input
@@ -361,12 +417,13 @@ function AllTrips() {
                         })}
                     </form>
                     <h4>Before Leaving Checklist</h4>
+                    <hr />
                     <form className="text-start">                       
-                        {Object.keys(currentTripData._document.data.value.mapValue.fields.beforeCheck.mapValue.fields).map((key, i) => {
-                            const beforeLoopList = currentTripData._document.data.value.mapValue.fields.beforeCheck.mapValue.fields[key].mapValue.fields;
+                        {Object.keys(sortedBeforeLeavingChecklist).map((key, i) => {
+                            const beforeLoopList = sortedBeforeLeavingChecklist[key].mapValue.fields;
                             
                             return (
-                                <div key={beforeLoopList.id.stringValue}>
+                                <div key={beforeLoopList.id.stringValue} className="m-3 mt-0">
                                     
                                     <div className="mb-3 form-check">
                                         <input
@@ -393,12 +450,13 @@ function AllTrips() {
                         })}
                     </form>
                     <h4>After Returning Checklist</h4>
+                    <hr />
                     <form className="text-start">
-                        {Object.keys(currentTripData._document.data.value.mapValue.fields.afterCheck.mapValue.fields).map((key, i) => {
-                            const afterLoopList = currentTripData._document.data.value.mapValue.fields.afterCheck.mapValue.fields[key].mapValue.fields;
+                        {Object.keys(sortedAfterReturningChecklist).map((key, i) => {
+                            const afterLoopList = sortedAfterReturningChecklist[key].mapValue.fields;
                             
                             return (
-                                <div key={afterLoopList.id.stringValue}>
+                                <div key={afterLoopList.id.stringValue} className="m-3 mt-0">
                                     
                                     <div className="mb-3 form-check">
                                         <input
@@ -424,58 +482,69 @@ function AllTrips() {
                             );
                         })}
                     </form>
+                    <Button variant="danger" onClick={() => onDeleteTripHandler(currentTripId)}>
+                        Delete Trip
+                    </Button>
                 </Col>
             </Row>
-        )}     
+        )}   
 
         {newTrip && (
             <>
                 <Row className="justify-content-center text-center">
                     <Col className="mt-4 mb-4">
+                        <h2 className="mb-4 text-center">Create a Trip</h2>
                         <Form>
                             <Form.Group className="mb-3" controlId="tripName">
-                                <Form.Label>Trip Name</Form.Label>
-                                <Form.Control
-                                    type="text"
-                                    onChange={onNameChangeHandler}
-                                    value={tripName}
-                                />
+                                <FloatingLabel label="Trip Name">
+                                    <Form.Control
+                                        type="text"
+                                        onChange={onNameChangeHandler}
+                                        value={tripName}
+                                        id="tripName"
+                                    />
+                                </FloatingLabel>
                             </Form.Group>
                             <Form.Group className="mb-3" controlId="tripStartDate">
-                                <Form.Label>Trip Start Date</Form.Label>
-                                <Form.Control
-                                    type="date"
-                                    onChange={onTripStartDateChangeHandler}
-                                    value={tripStartDate}
-                                />
+                                <FloatingLabel label="Trip Start Date">
+                                    <Form.Control
+                                        type="date"
+                                        onChange={onTripStartDateChangeHandler}
+                                        value={tripStartDate}
+                                        id="tripStartDate"
+                                    />
+                                </FloatingLabel>                                
                             </Form.Group>
                             <Form.Group className="mb-3" controlId="tripEndDate">
-                                <Form.Label>Trip End Date</Form.Label>
-                                <Form.Control
-                                    type="date"
-                                    onChange={onTripEndDateChangeHandler}
-                                    value={tripEndDate}
-                                />
+                                <FloatingLabel label="Trip End Date">
+                                    <Form.Control
+                                        type="date"
+                                        onChange={onTripEndDateChangeHandler}
+                                        value={tripEndDate}
+                                        id="tripEndDate"
+                                    />
+                                </FloatingLabel>                                
                             </Form.Group>
-                            <Form.Group>
-                                <Form.Label>Campground</Form.Label>
-                                <Form.Select
-                                    aria-label="Default select example"
-                                    onChange={onCampgroundSelectChangeHandler}
-                                    defaultValue={"default"}
-                                >
-                                    <option value="default" disabled>
-                                        Select a Campground
-                                    </option>
-
-                                    {campgrounds.map((i) => {
-                                        return (
-                                        <option key={i.id} value={i.name}>
-                                            {i.name}
+                            <Form.Group controlId="campgroundSelect">
+                                <FloatingLabel label="Campground">
+                                    <Form.Select
+                                        aria-label="Default select example"
+                                        onChange={onCampgroundSelectChangeHandler}
+                                        defaultValue={"default"}
+                                    >
+                                        <option value="default" disabled>
+                                            Select a Campground
                                         </option>
-                                        );
-                                    })}
-                                </Form.Select>
+
+                                        {campgrounds.map((i) => {
+                                            return (
+                                            <option key={i.id} value={i.name}>
+                                                {i.name}
+                                            </option>
+                                            );
+                                        })}
+                                    </Form.Select>
+                                </FloatingLabel>                                
                             </Form.Group>                            
                         </Form>
                     </Col>

@@ -17,6 +17,12 @@
   border-color: #A27B5C;
 }
 
+.btn.btn-secondary {
+  background-color: #D1D8BE;
+  border-color: #D1D8BE;
+  color: #3B3B1A;
+}
+
 .card:hover {
   cursor: pointer;
   opacity: .9;
@@ -31,29 +37,40 @@
   margin-bottom: 0;
 }
 
-.existing-trips ul {
+.existing-trips ul,
+.manage-campgrounds ul {
   display: flex;
   justify-content: space-between;
   padding-left: 0rem
 }
 
-.existing-trips ul li {
+.existing-trips ul li,
+.manage-campgrounds ul li {
   list-style-type: none;
   display: inline;
   padding: .75rem 0;
 }
 
-.existing-trips ul li.selected {
+.existing-trips ul li.selected a,
+.manage-campgrounds ul li.selected a {
   color: #fff;
 }
 
-.existing-trips ul li.previous, .existing-trips ul li.next, .existing-trips ul li.selected {  
+.existing-trips ul li.previous a, 
+.existing-trips ul li.next a, 
+.existing-trips ul li.selected a,
+.manage-campgrounds ul li.previous a, 
+.manage-campgrounds ul li.next a, 
+.manage-campgrounds ul li.selected a {  
   background-color: #1F7D53;
   padding: .75rem 1rem;
   border-radius: 1rem;
 }
 
-.existing-trips ul li.previous a, .existing-trips ul li.next a {
+.existing-trips ul li.previous a, 
+.existing-trips ul li.next a,
+.manage-campgrounds ul li.previous a, 
+.manage-campgrounds ul li.next a {
   color: #fff;
   text-decoration: none;
   font-weight: bold;
